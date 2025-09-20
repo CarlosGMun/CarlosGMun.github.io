@@ -1,0 +1,485 @@
+<?php
+function validateEmail($email)
+{
+   $pattern = '/^([0-9a-z]([-.\w]*[0-9a-z])*@(([0-9a-z])+([-\w]*[0-9a-z])*\.)+[a-z]{2,6})$/i';
+   return preg_match($pattern, $email);
+}
+function replaceVariables($code)
+{
+   foreach ($_POST as $key => $value)
+   {
+      if (is_array($value))
+      {
+         $value = implode(",", $value);
+      }
+      $name = "$" . $key;
+      $code = str_replace($name, $value, $code);
+   }
+   $code = str_replace('$ipaddress', $_SERVER['REMOTE_ADDR'], $code);
+   return $code;
+}
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['formid']) && $_POST['formid'] == 'layer7')
+{
+   $mailto = 'info@perroirreverente.com';
+   $mailfrom = isset($_POST['email']) ? $_POST['email'] : $mailto;
+   $subject = 'Mensaje desde la web de Perro Irreverente';
+   $message = 'Values submitted from web site form:';
+   $success_url = './thanks.html';
+   $error_url = '';
+   $eol = "\n";
+   $error = '';
+   $internalfields = array ("submit", "reset", "send", "filesize", "formid", "captcha", "recaptcha_challenge_field", "recaptcha_response_field", "g-recaptcha-response", "h-captcha-response");
+   $boundary = md5(uniqid(time()));
+   $header  = 'From: '.$mailfrom.$eol;
+   $header .= 'Reply-To: '.$mailfrom.$eol;
+   $header .= 'MIME-Version: 1.0'.$eol;
+   $header .= 'Content-Type: multipart/mixed; boundary="'.$boundary.'"'.$eol;
+   $header .= 'X-Mailer: PHP v'.phpversion().$eol;
+
+   try
+   {
+      if (!validateEmail($mailfrom))
+      {
+         $error .= "The specified email address (" . $mailfrom . ") is invalid!\n<br>";
+         throw new Exception($error);
+      }
+      $message .= $eol;
+      $message .= "IP Address : ";
+      $message .= $_SERVER['REMOTE_ADDR'];
+      $message .= $eol;
+      foreach ($_POST as $key => $value)
+      {
+         if (!in_array(strtolower($key), $internalfields))
+         {
+            if (is_array($value))
+            {
+               $message .= ucwords(str_replace("_", " ", $key)) . " : " . implode(",", $value) . $eol;
+            }
+            else
+            {
+               $message .= ucwords(str_replace("_", " ", $key)) . " : " . $value . $eol;
+            }
+         }
+      }
+      $body  = 'This is a multi-part message in MIME format.'.$eol.$eol;
+      $body .= '--'.$boundary.$eol;
+      $body .= 'Content-Type: text/plain; charset=UTF-8'.$eol;
+      $body .= 'Content-Transfer-Encoding: 8bit'.$eol;
+      $body .= $eol.stripslashes($message).$eol;
+      if (!empty($_FILES))
+      {
+         foreach ($_FILES as $key => $value)
+         {
+             if ($_FILES[$key]['error'] == 0)
+             {
+                $body .= '--'.$boundary.$eol;
+                $body .= 'Content-Type: '.$_FILES[$key]['type'].'; name='.$_FILES[$key]['name'].$eol;
+                $body .= 'Content-Transfer-Encoding: base64'.$eol;
+                $body .= 'Content-Disposition: attachment; filename='.$_FILES[$key]['name'].$eol;
+                $body .= $eol.chunk_split(base64_encode(file_get_contents($_FILES[$key]['tmp_name']))).$eol;
+             }
+         }
+      }
+      $body .= '--'.$boundary.'--'.$eol;
+      if ($mailto != '')
+      {
+         mail($mailto, $subject, $body, $header);
+      }
+      $successcode = file_get_contents($success_url);
+      $successcode = replaceVariables($successcode);
+      echo $successcode;
+   }
+   catch (Exception $e)
+   {
+      $errorcode = file_get_contents($error_url);
+      $replace = "##error##";
+      $errorcode = str_replace($replace, $e->getMessage(), $errorcode);
+      echo $errorcode;
+   }
+   exit;
+}
+?>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PERRRO IRREVERENTE | Expo Soluciones</title>
+<meta name="description" content="Nos especializamos en diseñar stands personalizados, presencia de marca, publicidad y multimedia para mercadotecnia de ferias comerciales, exposiciones y servicios de exhibición.">
+<meta name="keywords" content="perro
+irreverente
+perroirreverente
+stand
+stands
+booth
+booths
+expo
+exposición
+exhibición
+diseño
+octanorm
+exhibit
+tradeshow
+trade
+show
+video
+publicidad
+marketing
+digital">
+<meta name="author" content="Carlos G Mun">
+<meta name="categories" content="design">
+<meta name="robots" content="index, follow">
+<meta name="revisit-after" content="7 days">
+<meta name="generator" content="BITmotion & C2 Industries web services - http://www.01bitmotion.com">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="favicon-16.png" rel="icon" sizes="17x17" type="image/png">
+<link href="favicon-32.png" rel="icon" sizes="33x33" type="image/png">
+<link href="favicon-64.png" rel="icon" sizes="65x65" type="image/png">
+<link href="favicon-152.png" rel="apple-touch-icon" sizes="153x153">
+<link href="favicon-167.png" rel="apple-touch-icon" sizes="168x168">
+<link href="favicon-180.png" rel="apple-touch-icon" sizes="181x181">
+<link href="font-awesome.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Roboto:900,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Fira+Sans:900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="SITE1.css" rel="stylesheet">
+<link href="index.css" rel="stylesheet">
+<script src="jquery-3.7.1.min.js"></script>
+<script src="wb.parallax.min.js"></script>
+<script src="bootstrap.min.js"></script>
+<script src="wb.conveyerbelt.min.js"></script>
+<script src="wwb20.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(event)
+{
+   var menuItems = document.querySelectorAll('#wb_ResponsiveMenu2 ul li a');
+   menuItems.forEach(function(item)
+   {
+      item.addEventListener('click', function(event) 
+      {
+         var checkbox = document.querySelector('#wb_ResponsiveMenu2 input');
+         checkbox.checked = false;
+      });
+   });
+   var menuItems = document.querySelectorAll('#wb_ResponsiveMenu1 ul li a');
+   menuItems.forEach(function(item)
+   {
+      item.addEventListener('click', function(event) 
+      {
+         var checkbox = document.querySelector('#wb_ResponsiveMenu1 input');
+         checkbox.checked = false;
+      });
+   });
+   var menuItems = document.querySelectorAll('#wb_ResponsiveMenu3 ul li a');
+   menuItems.forEach(function(item)
+   {
+      item.addEventListener('click', function(event) 
+      {
+         var checkbox = document.querySelector('#wb_ResponsiveMenu3 input');
+         checkbox.checked = false;
+      });
+   });
+});
+</script>
+<script>
+$(document).ready(function()
+{
+   $('#Layer6').parallax();
+   $('#Layer2').parallax();
+   $("#SlideShow1").conveyerbelt({speed:1, spacing: 30});
+   $("a[href*='#about']").click(function(event)
+   {
+      event.preventDefault();
+      $('html, body').stop().animate({ scrollTop: $('#wb_about').offset().top }, 600, 'linear');
+   });
+   $("a[href*='#services']").click(function(event)
+   {
+      event.preventDefault();
+      $('html, body').stop().animate({ scrollTop: $('#wb_services').offset().top }, 600, 'linear');
+   });
+   $("a[href*='#clients']").click(function(event)
+   {
+      event.preventDefault();
+      $('html, body').stop().animate({ scrollTop: $('#wb_clients').offset().top }, 600, 'linear');
+   });
+   $("a[href*='#contact']").click(function(event)
+   {
+      event.preventDefault();
+      $('html, body').stop().animate({ scrollTop: $('#wb_contact').offset().top }, 600, 'linear');
+   });
+   $("a[href*='#home']").click(function(event)
+   {
+      event.preventDefault();
+      $('html, body').stop().animate({ scrollTop: $('#wb_home').offset().top }, 600, 'linear');
+   });
+});
+</script>
+<link href="https://fonts.googleapis.com/css?family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Fira+Sans&display=swap" rel="stylesheet">
+</head>
+<body data-bs-spy="scroll">
+<div id="Layer8">
+<div id="Layer8_Container">
+<div id="wb_Text36">
+<p>Copyright © 2000 - 2019, Perro Irreverente. Derechos reservados.</p></div>
+<div id="wb_Text37">
+<p>Designed by <a href="http://www.01bitmotion.com" target="_blank">BITmotion</a></p></div>
+</div>
+</div>
+<form name="Layer7" method="post" action="<?php echo basename(__FILE__); ?>" enctype="multipart/form-data" id="Layer7">
+<input type="hidden" name="formid" value="layer7">
+<div id="Layer7_Container">
+<input type="text" id="Editbox1" name="name" value="" spellcheck="false" required placeholder="Su nombre">
+<input type="text" id="Editbox2" name="email" value="" spellcheck="false" required placeholder="Su email">
+<input type="text" id="Editbox4" name="subject" value="" spellcheck="false" required placeholder="Asunto">
+<div id="wb_Text32">
+<p>Nos encantaría responderlos, así que póngase en contacto y lo ayudaremos a comenzar su viaje hacia una mejor presencia en expos y comercialización.</p></div>
+<input type="submit" id="Button1" name="submitbtn" value="ENVIAR">
+<input type="text" id="Editbox3" name="phone" value="" spellcheck="false" required placeholder="Su teléfono">
+<textarea name="msg" id="TextArea1" rows="4" cols="57" autocomplete="off" spellcheck="false" required placeholder="Su mensaje"></textarea>
+<div id="wb_FontAwesomeIcon2">
+<div id="FontAwesomeIcon2"><i class="fa fa-map-marker"></i></div></div>
+<div id="wb_Text33">
+<p>Av. Chapultepec #42 Col. Doctores,</p>
+<p>c.p. 06720 Alcaldía Cuauhtémoc, CDMX.</p></div>
+<div id="wb_Text31">
+<p style="font-weight:bold;">¿TIENE ALGÚN COMENTARIO? ¡HABLEMOS!</p></div>
+<div id="wb_Text34">
+<p>info@perroirreverente.com</p></div>
+<div id="wb_FontAwesomeIcon3">
+<div id="FontAwesomeIcon3"><i class="fa fa-envelope-o"></i></div></div>
+<div id="wb_FontAwesomeIcon4">
+<div id="FontAwesomeIcon4"><i class="fa fa-phone"></i></div></div>
+<div id="wb_Text35">
+<p>55 1295 9781</p>
+<p>55 71689686</p></div>
+</div>
+</form>
+<div id="Layer6">
+<div id="Layer6_Container">
+<div id="wb_Text29">
+<p style="font-weight:bold;">NUESTROS CLIENTES</p></div>
+<div id="SlideShow1">
+<img class="image" width="232" height="130" src="images/client1.png" alt="" title="">
+<img class="image" width="232" height="130" src="images/client2.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client3.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client4.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client5.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client6.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client7.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client8.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client9.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client10.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client11.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client12.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client13.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client14.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client15.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client16.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client17.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client18.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client19.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client20.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client21.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client22.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client23.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client24.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client25.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client26.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client27.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client28.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client29.png" style="display:none;" alt="" title="">
+<img class="image" width="232" height="130" src="images/client30.png" style="display:none;" alt="" title="">
+</div>
+<div id="wb_Text30">
+<p>Todos los días, hemos dedicado nuestro esfuerzo, creatividad y experiencia a nuestros clientes, logrando grandes éxitos y construyendo relaciones duraderas.</p>
+<p>Estamos orgullosos de nuestros clientes, y nos encantaría agregar su nombre a nuestra lista.</p></div>
+</div>
+</div>
+<div id="Layer5">
+<div id="Layer5_Container">
+<div id="wb_Text27">
+<p>Explore nuestro catálogo de stands personalizados en madera, modulares, portátiles o basados en sistema Octanorm. Use los ejemplos como inspiración o adopte y personalice uno directamente de la galería.</p></div>
+<div id="wb_Text28">
+<p>¡Contáctenos si ve algo que le gusta o tiene alguna pregunta! Estamos aquí para ayudarle.</p></div>
+<div id="wb_Image6">
+<img src="images/stand_sample1.jpg" id="Image6" alt="" width="375" height="220"></div>
+<div id="wb_Image7">
+<img src="images/stand_sample2.jpg" id="Image7" alt="" width="375" height="220"></div>
+<div id="wb_Image8">
+<img src="images/stand_sample3.jpg" id="Image8" alt="" width="375" height="220"></div>
+<div id="wb_Image10">
+<img src="images/stand_sample5.jpg" id="Image10" alt="" width="375" height="220"></div>
+<div id="wb_Shape1">
+<img src="images/img0001.png" id="Shape1" alt="catálogo stands" title="catálogo stands" width="294" height="45"></div>
+<div id="wb_Text26">
+<p style="font-weight:bold;">NUESTROS DISEÑOS MÁS RECIENTES</p></div>
+<div id="wb_Image11">
+<img src="images/stand_sample6.jpg" id="Image11" alt="" width="375" height="220"></div>
+<div id="wb_Image9">
+<img src="images/stand_sample4.jpg" id="Image9" alt="" width="375" height="220"></div>
+</div>
+</div>
+<div id="Layer4">
+<div id="Layer4_Container">
+<div id="wb_Text13">
+<p style="font-weight:bold;">¿QUÉ HACEMOS?</p></div>
+<div id="wb_Text18">
+<p>Somos una compañía que ofrece diseños creativos de exhibición, publicidad y marketing.</p></div>
+<div id="wb_Text15">
+<p style="font-weight:bold;">D</p></div>
+<div id="wb_Text12">
+<p style="font-weight:bold;">iseño y Desarrollo</p></div>
+<div id="wb_Text14">
+<p>Traducimos sus objetivos de marketing en una estructura de alto impacto y una imagen de diseño. Una vez aprobado, el diseño se convierte en dibujos detallados y comienza la construcción.</p></div>
+<div id="wb_Text16">
+<p style="font-weight:bold;">oluciones Web</p></div>
+<div id="wb_Text21">
+<p style="font-weight:bold;">P</p></div>
+<div id="wb_Text20">
+<p style="font-weight:bold;">ublicidad</p></div>
+<div id="wb_Text22">
+<p>Ayudamos a que las personas se centren en un producto o servicio. Con los expertos de nuestro equipo podemos crear diseños, logotipos, campañas, promocionales, video e imágenes que lo ayudarán a destacarse como persona, marca o empresa.</p></div>
+<div id="wb_Text24">
+<p style="font-weight:bold;">M</p></div>
+<div id="wb_Text17">
+<p style="font-weight:bold;">S</p></div>
+<div id="wb_Text19">
+<p>Combinamos una estrategia basada en la investigación, un diseño innovador y una codificación limpia para construir sitios web de impacto y crear las mejores experiencias para el público de nuestros clientes.</p></div>
+<div id="wb_Text23">
+<p style="font-weight:bold;">arketing Digital</p></div>
+<div id="wb_Text25">
+<p>Desarrollamos estrategias de marketing digital y ejecución, administración e integración de sistemas, posicionamiento en web y redes, automatización, insights y analytics.</p></div>
+</div>
+</div>
+<div id="Layer3">
+<div id="Layer3_Container">
+<div id="wb_Image2">
+<img src="images/ser01.png" id="Image2" alt="" width="64" height="64"></div>
+<div id="wb_Text2">
+<p style="font-weight:bold;">Concepto Creativo</p></div>
+<div id="wb_Text1">
+<p>Diseños de stands para exhibición que satisfacen las necesidades de mensaje, marca, objetivos y presupuesto del cliente.</p></div>
+<div id="wb_Image3">
+<img src="images/ser02.png" id="Image3" alt="" width="64" height="64"></div>
+<div id="wb_Text7">
+<p style="font-weight:bold;">Diseños Asombrosos</p></div>
+<div id="wb_Image4">
+<img src="images/ser03.png" id="Image4" alt="" width="64" height="64"></div>
+<div id="wb_Text9">
+<p style="font-weight:bold;">Inversión Inteligente</p></div>
+<div id="wb_Text8">
+<p>Diseñamos nuestros stands para renta o compra dentro de su presupuesto y de acuerdo a sus necesidades.</p></div>
+<div id="wb_Image5">
+<img src="images/ser04.png" id="Image5" alt="" width="64" height="64"></div>
+<div id="wb_Text10">
+<p>Aumente efectivamente las ventas de su negocio con una exhibición que satisfaga sus necesidades y exceda sus objetivos.</p></div>
+<div id="wb_Text6">
+<p>Atraiga a su mercado objetivo directo a su stand con soluciones e ideas creativas y usando la más alta tecnología.</p></div>
+<div id="wb_Text11">
+<p style="font-weight:bold;">Aumente sus ventas</p></div>
+</div>
+</div>
+<div id="Layer2">
+<div id="Layer2_Container">
+<div id="wb_Text4">
+<p>MATERIALIZAMOS IDEAS</p></div>
+<div id="wb_Text5">
+<p>Nos especializamos en ayudar a las empresas a maximizar el impacto de su marca en las expos, a través de stands personalizados, exhibiciones de alquiler, mercadotecnia de ferias comerciales y servicios de exhibiciones.</p></div>
+<div id="wb_Image1">
+<img src="images/perroirreverente_logo_white.png" id="Image1" alt="" width="355" height="204"></div>
+<div id="wb_Shape2">
+<img src="images/img0002.png" id="Shape2" alt="catálogo stands" title="catálogo stands" width="247" height="45"></div>
+<div id="wb_FontAwesomeIcon1">
+<a href="#about"><div id="FontAwesomeIcon1"><i class="fa fa-angle-down"></i></div></a></div>
+</div>
+</div>
+<div id="Layer1" onscroll="AnimateCss('Layer1', 'animate-fade-in', 0, 500);return false;">
+<div id="Layer1_Container">
+<div id="wb_ResponsiveMenu1">
+<label class="toggle" for="ResponsiveMenu1-submenu" id="ResponsiveMenu1-title"><span id="ResponsiveMenu1-icon"><span>&nbsp;</span><span>&nbsp;</span><span>&nbsp;</span></span></label>
+<input type="checkbox" id="ResponsiveMenu1-submenu">
+<ul class="nav ResponsiveMenu1" id="ResponsiveMenu1" role="menu">
+<li class="nav" role="menuitem"><a href="#home" class="nav-link"><i class="fa fa-home"></i><br>HOME</a></li>
+<li class="nav" role="menuitem"><a href="#about" class="nav-link"><i class="fa fa-book"></i><br>ACERCA&nbsp;DE</a></li>
+<li class="nav" role="menuitem"><a href="#services" class="nav-link"><i class="fa fa-address-book"></i><br>SERVICIOS</a></li>
+<li class="nav" role="menuitem">
+<label for="ResponsiveMenu1-submenu-0" class="toggle"><i class="fa fa-gear"></i>PORTAFOLIO<span class="arrow-down"></span></label>
+<a href="javascript:void(0)" rel="nofollow" class="nav-link"><i class="fa fa-gear"></i><br>PORTAFOLIO<span class="arrow-down"></span></a>
+<input type="checkbox" id="ResponsiveMenu1-submenu-0">
+<ul role="menu">
+<li class="nav" role="menuitem"><a href="./gallery3x3.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;3X3m</a></li>
+<li class="nav" role="menuitem"><a href="./gallery6x3.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;6X3m</a></li>
+<li class="nav" role="menuitem"><a href="" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;OTRAS&nbsp;MEDIDAS</a></li>
+<li class="nav" role="menuitem"><a href="./gallerycustom.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;CUSTOM</a></li>
+</ul>
+</li>
+<li class="nav" role="menuitem"><a href="#clients" class="nav-link"><i class="fa fa-user"></i><br>CLIENTES</a></li>
+<li class="nav" role="menuitem"><a href="#contact" class="nav-link"><i class="fa fa-address-book"></i><br>CONTACTO</a></li>
+</ul>
+</div>
+<div id="wb_ResponsiveMenu3">
+<label class="toggle" for="ResponsiveMenu3-submenu" id="ResponsiveMenu3-title"><span id="ResponsiveMenu3-icon"><span>&nbsp;</span><span>&nbsp;</span><span>&nbsp;</span></span></label>
+<input type="checkbox" id="ResponsiveMenu3-submenu">
+<ul class="nav ResponsiveMenu3" id="ResponsiveMenu3" role="menu">
+<li class="nav" role="menuitem"><a href="#home" class="nav-link"><i class="fa fa-home"></i><br>HOME</a></li>
+<li class="nav" role="menuitem"><a href="#about" class="nav-link"><i class="fa fa-book"></i><br>ACERCA&nbsp;DE</a></li>
+<li class="nav" role="menuitem"><a href="#services" class="nav-link"><i class="fa fa-address-book"></i><br>SERVICIOS</a></li>
+<li class="nav" role="menuitem">
+<label for="ResponsiveMenu3-submenu-0" class="toggle"><i class="fa fa-gear"></i>PORTAFOLIO<span class="arrow-down"></span></label>
+<a href="javascript:void(0)" class="nav-link"><i class="fa fa-gear"></i><br>PORTAFOLIO<span class="arrow-down"></span></a>
+<input type="checkbox" id="ResponsiveMenu3-submenu-0">
+<ul role="menu">
+<li class="nav" role="menuitem"><a href="./gallery3x3.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;3X3m</a></li>
+<li class="nav" role="menuitem"><a href="./gallery6x3.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;6X3m</a></li>
+<li class="nav" role="menuitem"><a href="" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;OTRAS&nbsp;MEDIDAS</a></li>
+<li class="nav" role="menuitem"><a href="./gallerycustom.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;CUSTOM</a></li>
+</ul>
+</li>
+<li class="nav" role="menuitem"><a href="#clients" class="nav-link"><i class="fa fa-user"></i><br>CLIENTES</a></li>
+<li class="nav" role="menuitem"><a href="#contact" class="nav-link"><i class="fa fa-address-book"></i><br>CONTACTO</a></li>
+</ul>
+</div>
+<div id="wb_ResponsiveMenu2">
+<label class="toggle" for="ResponsiveMenu2-submenu" id="ResponsiveMenu2-title"><span id="ResponsiveMenu2-icon"><span>&nbsp;</span><span>&nbsp;</span><span>&nbsp;</span></span></label>
+<input type="checkbox" id="ResponsiveMenu2-submenu">
+<ul class="nav ResponsiveMenu2" id="ResponsiveMenu2" role="menu">
+<li class="nav" role="menuitem"><a href="#home" class="nav-link"><i class="fa fa-home"></i><br>HOME</a></li>
+<li class="nav" role="menuitem"><a href="#about" class="nav-link"><i class="fa fa-book"></i><br>ACERCA&nbsp;DE</a></li>
+<li class="nav" role="menuitem"><a href="#services" class="nav-link"><i class="fa fa-address-book"></i><br>SERVICIOS</a></li>
+<li class="nav" role="menuitem">
+<label for="ResponsiveMenu2-submenu-0" class="toggle"><i class="fa fa-gear"></i>PORTAFOLIO<span class="arrow-down"></span></label>
+<a href="javascript:void(0)" class="nav-link"><i class="fa fa-gear"></i><br>PORTAFOLIO<span class="arrow-down"></span></a>
+<input type="checkbox" id="ResponsiveMenu2-submenu-0">
+<ul role="menu">
+<li class="nav" role="menuitem"><a href="./gallery3x3.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;3X3m</a></li>
+<li class="nav" role="menuitem"><a href="./gallery6x3.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;6X3m</a></li>
+<li class="nav" role="menuitem"><a href="" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;OTRAS&nbsp;MEDIDAS</a></li>
+<li class="nav" role="menuitem"><a href="./gallerycustom.html" class="nav-link"><i class="fa fa-address-book"></i>STANDS&nbsp;CUSTOM</a></li>
+</ul>
+</li>
+<li class="nav" role="menuitem"><a href="#clients" class="nav-link"><i class="fa fa-user"></i><br>CLIENTES</a></li>
+<li class="nav" role="menuitem"><a href="#contact" class="nav-link"><i class="fa fa-address-book"></i><br>CONTACTO</a></li>
+</ul>
+</div>
+<div id="wb_Text3">
+<p><span style="background-color:#10141C;">PERRO</span><span style="background-color:#10141C;color:#E30B00;">IRREVERENTE</span></p></div>
+</div>
+</div>
+<div id="wb_about">
+<div id="about"></div>
+</div>
+<div id="wb_services">
+<div id="services"></div>
+</div>
+<div id="wb_clients">
+<div id="clients"></div>
+</div>
+<div id="wb_contact">
+<div id="contact"></div>
+</div>
+<div id="wb_home">
+<div id="home"></div>
+</div>
+</body>
+</html>
